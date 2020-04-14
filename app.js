@@ -17,6 +17,7 @@ const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
 const bookingRouter = require('./routes/bookingRoutes');
 const viewRouter = require('./routes/viewRoutes');
+const { paymentCheckout } = require('./controllers/bookingController');
 
 const app = express();
 
@@ -50,6 +51,12 @@ const limiter = rateLimit({
 });
 
 app.use('/api', limiter);
+
+app.post(
+  '/payment-checkout',
+  express.raw({ type: 'application/json' }),
+  paymentCheckout
+);
 
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));
