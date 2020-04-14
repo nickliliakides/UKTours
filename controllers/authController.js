@@ -12,18 +12,21 @@ const signToken = id => {
   });
 };
 
-const createAndSendToken = (user, res, statusCode = 200, sendUser = false) => {
+const createAndSendToken = (
+  user,
+  res,
+  req,
+  statusCode = 200,
+  sendUser = false
+) => {
   const token = signToken(user._id);
-  const cookieOptions = {
+  res.cookie('jwt', token, {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
-    httpOnly: true
-  };
-
-  if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
-
-  res.cookie('jwt', token, cookieOptions);
+    httpOnly: true,
+    secure: req.secure || req.headers('x-forwarded-proto') === 'https'
+  });
   user.password = undefined;
 
   // eslint-disable-next-line no-unused-expressions
@@ -54,7 +57,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   const url = `${req.protocol}://${req.get('host')}/me`;
   await new Email(newUser, url).sendWelcome();
 
-  createAndSendToken(newUser, res, 201, true);
+  createAndSendToken(newUser, res, req, 201, true);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -75,7 +78,7 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   //If all checks pass send token to the client
-  createAndSendToken(user, res);
+  createAndSendToken(user, res, req);
 });
 
 exports.logout = (req, res) => {
@@ -228,7 +231,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   // Log in user, send JWT
-  createAndSendToken(user, res);
+  createAndSendToken(user, res, req);
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
@@ -246,5 +249,5 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   // Log in user, send JWT
-  createAndSendToken(user, res);
+  createAndSendToken(user, res, req);
 });
